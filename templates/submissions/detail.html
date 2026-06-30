@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% block title %}Submissao {{ submission.protocolo }} - FormSystem{% endblock %}
+{% block extra_css %}
+<style>
+  .protocolo-highlight {
+    background: linear-gradient(135deg, var(--gov-primary), var(--gov-primary-light));
+    color: #fff;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+  }
+  .protocolo-highlight .protocolo-label { font-size: 0.85rem; opacity: 0.8; }
+  .protocolo-highlight .protocolo-value { font-size: 1.5rem; font-weight: 700; letter-spacing: 1px; }
+  .status-timeline { position: relative; padding-left: 2rem; }
+  .status-timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #dee2e6;
+  }
+  .timeline-item { position: relative; padding-bottom: 1.5rem; }
+  .timeline-item:last-child { padding-bottom: 0; }
+  .timeline-item .timeline-icon {
+    position: absolute;
+    left: -1.65rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid #dee2e6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.7rem;
+    z-index: 1;
+  }
+  .timeline-item.completed .timeline-icon { border-color: #198754; background: #198754; color: #fff; }
+  .timeline-item.active .timeline-icon { border-color: var(--gov-accent); background: var(--gov-accent); color: #fff; }
+  .timeline-item.error .timeline-icon { border-color: #dc3545; background: #dc3545; color: #fff; }
+  .timeline-item .timeline-content { padding-left: 0.5rem; }
+  .timeline-item .timeline-content .timeline-title { font-weight: 500; font-size: 0.9rem; }
+  .timeline-item .timeline-content .timeline-date { font-size: 0.8rem; color: #6c757d; }
+  .data-table td:first-child { font-weight: 500; color: #495057; width: 200px; }
+  .edocs-link { display: flex; align-items: center; gap: 0.5rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1><i class="fas fa-list-check me-2"></i>Detalhes da Submissao</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('list_submissions') }}">Submissoes</a></li>
+        <li class="breadcrumb-item active">{{ submission.protocolo }}</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    {% if submission.pdf_path %}
+    <a href="{{ url_for('download_submission_pdf', id=submission.id) }}" class="btn btn-gov">
+      <i class="fas fa-file-pdf me-1"></i>Baixar PDF
+    </a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="protocolo-highlight mb-3">
+      <div class="row align-items-center">
+        <div class="col-md-6">
+          <div class="protocolo-label">Protocolo</div>
+          <div class="protocolo-value">{{ submission.protocolo }}</div>
+        </div>
+        <div class="col-md-6 text-md-end">
+          <div class="protocolo-label">Formulario</div>
+          <div class="fs-5 fw-semibold">{{ form.nome }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><i class="fas fa-user me-1"></i>Informacoes do Submissor</div>
+      <div class="card-body">
+        <table class="table table-borderless mb-0 data-table">
+          <tr>
+            <td>Nome:</td>
+            <td>{{ submission.submissor_nome if submission.submissor_nome else '-' }}</td>
+          </tr>
+          <tr>
+            <td>Email:</td>
+            <td>{{ submission.submissor_email if submission.submissor_email else '-' }}</td>
+          </tr>
+          <tr>
+            <td>Data de Envio:</td>
+            <td>{{ submission.criado_em }}</td>
+          </tr>
+          <tr>
+            <td>Status:</td>
+            <td>
+              {% if submission.status == 'draft' %}
+                <span class="badge bg-secondary">Rascunho</span>
+              {% elif submission.status == 'submitted' %}
+                <span class="badge bg-primary">Submetido</span>
+              {% elif submission.status == 'processing' %}
+                <span class="badge bg-warning text-dark">Processando</span>
+              {% elif submission.status == 'completed' %}
+                <span class="badge bg-success">Concluido</span>
+              {% elif submission.status == 'error' %}
+                <span class="badge bg-danger">Erro</span>
+              {% endif %}
+            </td>
+          </tr>
+        </table>
+      </div>
+    </div>
+
+    <div class="card mb-3">
+      <div class="card-header"><i class="fas fa-table me-1"></i>Dados do Formulario</div>
+      <div class="card-body p-0">
+        <table class="table table-striped mb-0 data-table">
+          {% for field in fields %}
+          <tr>
+            <td>{{ field.label }}</td>
+            <td>{{ submission.dados.get(field.slug, '-') if submission.dados else '-' }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-4">
+    <div class="card mb-3">
+      <div class="card-header"><i class="fas fa-clock me-1"></i>Linha do Tempo</div>
+      <div class="card-body">
+        <div class="status-timeline">
+          <div class="timeline-item {{ 'completed' if submission.status in ['submitted','processing','completed'] else 'active' if submission.status == 'draft' }}">
+            <div class="timeline-icon"><i class="fas fa-check"></i></div>
+            <div class="timeline-content">
+              <div class="timeline-title">Submetido</div>
+              <div class="timeline-date">{{ submission.criado_em if submission.criado_em else '-' }}</div>
+            </div>
+          </div>
+          <div class="timeline-item {{ 'completed' if submission.status in ['processing','completed'] else 'active' if submission.status == 'submitted' }}">
+            <div class="timeline-icon"><i class="fas fa-file-pdf"></i></div>
+            <div class="timeline-content">
+              <div class="timeline-title">PDF Gerado</div>
+              <div class="timeline-date">{{ submission.pdf_gerado_em if submission.pdf_gerado_em else 'Aguardando...' }}</div>
+            </div>
+          </div>
+          <div class="timeline-item {{ 'completed' if submission.status == 'completed' else 'active' if submission.status == 'processing' else '' }}">
+            <div class="timeline-icon"><i class="fas fa-plug"></i></div>
+            <div class="timeline-content">
+              <div class="timeline-title">Enviado para E-Docs</div>
+              <div class="timeline-date">{{ submission.enviado_edocs_em if submission.enviado_edocs_em else 'Aguardando...' }}</div>
+            </div>
+          </div>
+          <div class="timeline-item {{ 'completed' if submission.status == 'completed' else '' }} {{ 'error' if submission.status == 'error' }}">
+            <div class="timeline-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="timeline-content">
+              <div class="timeline-title">Concluido</div>
+              <div class="timeline-date">{{ submission.concluido_em if submission.concluido_em else 'Aguardando...' }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if submission.status == 'error' and submission.error_message %}
+    <div class="card border-danger mb-3">
+      <div class="card-header text-danger"><i class="fas fa-circle-exclamation me-1"></i>Erro</div>
+      <div class="card-body">
+        <pre class="mb-0 small text-danger">{{ submission.error_message }}</pre>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <div class="card-header"><i class="fas fa-plug me-1"></i>Integracao E-Docs</div>
+      <div class="card-body">
+        {% if submission.edocs_documento_id or submission.edocs_processo_id or submission.edocs_encaminhamento_id %}
+          {% if submission.edocs_documento_id %}
+          <div class="mb-2 edocs-link">
+            <i class="fas fa-file text-primary"></i>
+            <div>
+              <small class="text-muted d-block">Documento ID</small>
+              <code>{{ submission.edocs_documento_id }}</code>
+            </div>
+          </div>
+          {% endif %}
+          {% if submission.edocs_processo_id %}
+          <div class="mb-2 edocs-link">
+            <i class="fas fa-diagram-project text-success"></i>
+            <div>
+              <small class="text-muted d-block">Processo ID</small>
+              <code>{{ submission.edocs_processo_id }}</code>
+            </div>
+          </div>
+          {% endif %}
+          {% if submission.edocs_encaminhamento_id %}
+          <div class="mb-2 edocs-link">
+            <i class="fas fa-arrow-right text-info"></i>
+            <div>
+              <small class="text-muted d-block">Encaminhamento ID</small>
+              <code>{{ submission.edocs_encaminhamento_id }}</code>
+            </div>
+          </div>
+          {% endif %}
+        {% else %}
+          <div class="text-center text-muted py-3">
+            <i class="fas fa-plug fa-2x mb-2 d-block"></i>
+            <small>Este formulario nao foi enviado ao E-Docs</small>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

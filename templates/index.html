@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - FormSystem{% endblock %}
+{% block content %}
+<div class="content-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1><i class="fas fa-gauge me-2"></i>Dashboard</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item active">Dashboard</li>
+      </ol>
+    </nav>
+  </div>
+  <div class="d-flex gap-2">
+    <a href="{{ url_for('form_builder') }}" class="btn btn-gov">
+      <i class="fas fa-plus me-1"></i>Novo Formulario
+    </a>
+    <a href="{{ url_for('list_submissions') }}" class="btn btn-gov-outline">
+      <i class="fas fa-list-check me-1"></i>Ver Submissoes
+    </a>
+  </div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-xl-3 col-md-6">
+    <div class="card stat-card">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon bg-primary bg-opacity-10 text-primary">
+          <i class="fas fa-file-pen"></i>
+        </div>
+        <div>
+          <div class="stat-value">{{ total_forms }}</div>
+          <div class="stat-label">Total de Formularios</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="card stat-card" style="border-left-color: #198754;">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon bg-success bg-opacity-10 text-success">
+          <i class="fas fa-list-check"></i>
+        </div>
+        <div>
+          <div class="stat-value">{{ total_submissions }}</div>
+          <div class="stat-label">Total de Submissoes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="card stat-card" style="border-left-color: #fd7e14;">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+          <i class="fas fa-calendar-day"></i>
+        </div>
+        <div>
+          <div class="stat-value">{{ submissions_today }}</div>
+          <div class="stat-label">Submissoes Hoje</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-xl-3 col-md-6">
+    <div class="card stat-card" style="border-left-color: {{ '#198754' if edocs_status == 'connected' else '#dc3545' }};">
+      <div class="card-body d-flex align-items-center gap-3">
+        <div class="stat-icon bg-info bg-opacity-10 text-info">
+          <i class="fas fa-plug"></i>
+        </div>
+        <div>
+          <div class="stat-value">
+            {% if edocs_status == 'connected' %}
+              <span class="text-success"><i class="fas fa-check-circle"></i></span>
+            {% else %}
+              <span class="text-danger"><i class="fas fa-times-circle"></i></span>
+            {% endif %}
+          </div>
+          <div class="stat-label">
+            Status E-Docs
+            {% if edocs_status == 'connected' %}
+              <span class="badge bg-success ms-1">Conectado</span>
+            {% else %}
+              <span class="badge bg-danger ms-1">Desconectado</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-8">
+    <div class="card">
+      <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="fas fa-clock-rotate me-2"></i>Submissoes Recentes</span>
+        <a href="{{ url_for('list_submissions') }}" class="btn btn-sm btn-gov-outline">Ver Todas</a>
+      </div>
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover mb-0">
+            <thead class="table-light">
+              <tr>
+                <th>Protocolo</th>
+                <th>Formulario</th>
+                <th>Status</th>
+                <th>Data</th>
+                <th>Acoes</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for sub in recent_submissions %}
+              <tr>
+                <td><code>{{ sub.protocolo }}</code></td>
+                <td>{{ sub.formulario_nome }}</td>
+                <td>
+                  {% if sub.status == 'draft' %}
+                    <span class="badge bg-secondary">Rascunho</span>
+                  {% elif sub.status == 'submitted' %}
+                    <span class="badge bg-primary">Submetido</span>
+                  {% elif sub.status == 'processing' %}
+                    <span class="badge bg-warning text-dark">Processando</span>
+                  {% elif sub.status == 'completed' %}
+                    <span class="badge bg-success">Concluido</span>
+                  {% elif sub.status == 'error' %}
+                    <span class="badge bg-danger">Erro</span>
+                  {% endif %}
+                </td>
+                <td class="text-muted small">{{ sub.criado_em }}</td>
+                <td>
+                  <a href="{{ url_for('submission_detail', id=sub.id) }}" class="btn btn-sm btn-outline-primary" title="Detalhes">
+                    <i class="fas fa-eye"></i>
+                  </a>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td colspan="5" class="text-center py-4 text-muted">
+                  <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
+                  Nenhuma submissao recente
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="card">
+      <div class="card-header">
+        <i class="fas fa-bolt me-2"></i>Acoes Rapidas
+      </div>
+      <div class="card-body">
+        <div class="d-grid gap-2">
+          <a href="{{ url_for('form_builder') }}" class="btn btn-gov">
+            <i class="fas fa-plus me-1"></i> Novo Formulario
+          </a>
+          <a href="{{ url_for('list_forms') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-file-pen me-1"></i> Gerenciar Formularios
+          </a>
+          <a href="{{ url_for('list_submissions') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-list-check me-1"></i> Ver Submissoes
+          </a>
+          <a href="{{ url_for('edocs_settings') }}" class="btn btn-outline-secondary">
+            <i class="fas fa-plug me-1"></i> Configurar E-Docs
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,407 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if form else 'Novo' }} Formulario - FormSystem{% endblock %}
+{% block extra_css %}
+<style>
+  .field-types { min-height: 100px; }
+  .field-type-btn {
+    cursor: grab;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    background: #fff;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+    text-align: left;
+    width: 100%;
+  }
+  .field-type-btn:hover {
+    border-color: var(--gov-accent);
+    background: #f0f7ff;
+  }
+  .field-type-btn:active { cursor: grabbing; }
+  .field-type-btn i { width: 1.25rem; text-align: center; color: var(--gov-accent); }
+
+  .drop-zone {
+    min-height: 300px;
+    border: 2px dashed #dee2e6;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    transition: all 0.2s;
+  }
+  .drop-zone.drag-over { border-color: var(--gov-accent); background: #f0f7ff; }
+  .drop-zone.empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .drop-zone .empty-message {
+    color: #adb5bd;
+    text-align: center;
+  }
+  .drop-zone .empty-message i { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+  .form-field-item {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 0.5rem;
+    cursor: move;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .form-field-item:hover { border-color: var(--gov-accent); box-shadow: 0 1px 4px rgba(44,123,229,0.15); }
+  .form-field-item.selected { border-color: var(--gov-accent); box-shadow: 0 0 0 2px rgba(44,123,229,0.2); }
+  .form-field-item .field-handle { color: #adb5bd; cursor: grab; }
+  .form-field-item .field-label { font-weight: 500; font-size: 0.9rem; }
+  .form-field-item .field-type-badge { font-size: 0.75rem; }
+  .form-field-item .field-actions { opacity: 0; transition: opacity 0.15s; }
+  .form-field-item:hover .field-actions { opacity: 1; }
+
+  .field-properties-panel { position: sticky; top: 80px; }
+  .properties-section { margin-bottom: 1rem; }
+  .properties-section h6 {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e9ecef;
+  }
+
+  .preview-render .form-control:disabled,
+  .preview-render .form-select:disabled {
+    background: #fff;
+    opacity: 0.7;
+  }
+
+  .nav-tabs .nav-link { color: #495057; }
+  .nav-tabs .nav-link.active { color: var(--gov-primary); font-weight: 500; }
+
+  .options-list .option-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  .options-list .option-item .option-value { flex: 1; }
+  .options-list .option-item .option-label { flex: 2; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="content-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1><i class="fas fa-file-pen me-2"></i>{{ 'Editar' if form else 'Novo' }} Formulario</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+        <li class="breadcrumb-item"><a href="{{ url_for('list_forms') }}">Formularios</a></li>
+        <li class="breadcrumb-item active">{{ 'Editar' if form else 'Novo' }}</li>
+      </ol>
+    </nav>
+  </div>
+  <div>
+    <button class="btn btn-success me-2" onclick="salvarForm()">
+      <i class="fas fa-floppy-disk me-1"></i>Salvar
+    </button>
+    <a href="{{ url_for('list_forms') }}" class="btn btn-outline-secondary">
+      <i class="fas fa-times me-1"></i>Cancelar
+    </a>
+  </div>
+</div>
+
+<form id="formBuilderForm" method="POST" action="{{ url_for('save_form') }}">
+  <input type="hidden" name="form_id" value="{{ form.id if form else '' }}">
+  <input type="hidden" name="fields_schema" id="fieldsSchema" value="{{ form.fields_schema if form else '[]' }}">
+
+  <div class="card mb-3">
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">Nome do Formulario</label>
+          <input type="text" name="nome" id="formNome" class="form-control form-control-lg" value="{{ form.nome if form else '' }}" placeholder="Ex: Solicitacao de Documentos" required>
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Slug</label>
+          <input type="text" name="slug" id="formSlug" class="form-control" value="{{ form.slug if form else '' }}" placeholder="slug-automatico">
+        </div>
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">Versao</label>
+          <input type="text" name="versao" class="form-control" value="{{ form.versao if form else '1.0' }}">
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Descricao</label>
+          <textarea name="descricao" id="formDescricao" class="form-control" rows="2" placeholder="Descricao do formulario...">{{ form.descricao if form else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ul class="nav nav-tabs mb-3" id="builderTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+      <button class="nav-link active" id="campos-tab" data-bs-toggle="tab" data-bs-target="#campos" type="button" role="tab">
+        <i class="fas fa-layer-group me-1"></i>Campos
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="edocs-tab" data-bs-toggle="tab" data-bs-target="#edocs" type="button" role="tab">
+        <i class="fas fa-plug me-1"></i>Configuracoes E-Docs
+      </button>
+    </li>
+    <li class="nav-item" role="presentation">
+      <button class="nav-link" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview" type="button" role="tab">
+        <i class="fas fa-eye me-1"></i>Visualizar
+      </button>
+    </li>
+  </ul>
+
+  <div class="tab-content">
+    <!-- TAB CAMPOS -->
+    <div class="tab-pane fade show active" id="campos" role="tabpanel">
+      <div class="row g-3">
+        <div class="col-lg-3">
+          <div class="card">
+            <div class="card-header"><i class="fas fa-palette me-1"></i>Tipos de Campo</div>
+            <div class="card-body field-types" id="fieldTypes">
+              {% for ft in field_types %}
+              <button class="field-type-btn mb-1" data-type="{{ ft.type }}" data-label="{{ ft.label }}">
+                <i class="{{ ft.icon }}"></i> {{ ft.label }}
+              </button>
+              {% endfor %}
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+              <span><i class="fas fa-arrows-up-down me-1"></i>Campos do Formulario</span>
+              <span class="text-muted small" id="fieldCount">0 campos</span>
+            </div>
+            <div class="card-body">
+              <div class="drop-zone empty" id="dropZone">
+                <div class="empty-message">
+                  <i class="fas fa-cloud-arrow-down d-block"></i>
+                  <p class="mb-0">Arraste os campos aqui</p>
+                  <small>Clique nos tipos de campo ao lado para adicionar</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3">
+          <div class="card">
+            <div class="card-header"><i class="fas fa-gear me-1"></i>Propriedades</div>
+            <div class="card-body field-properties-panel" id="propertiesPanel">
+              <div class="text-center text-muted py-4">
+                <i class="fas fa-hand-pointer fa-2x mb-2 d-block"></i>
+                <small>Selecione um campo para editar suas propriedades</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB CONFIG E-DOCS -->
+    <div class="tab-pane fade" id="edocs" role="tabpanel">
+      <div class="row g-4">
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header"><i class="fas fa-file me-1"></i>Configuracao do Documento</div>
+            <div class="card-body">
+              <div class="mb-3 form-check form-switch">
+                <input type="checkbox" class="form-check-input" name="auto_submit" id="autoSubmit" value="1" {{ 'checked' if form and form.auto_submit }}>
+                <label class="form-check-label fw-semibold" for="autoSubmit">Envio automatico para E-Docs</label>
+                <div class="text-muted small">Quando ativado, submissoes sao enviadas automaticamente ao E-Docs</div>
+              </div>
+              <hr>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Valor Legal</label>
+                <select name="valor_legal" class="form-select">
+                  <option value="">Selecione...</option>
+                  <option value="original" {{ 'selected' if form and form.valor_legal == 'original' }}>Original</option>
+                  <option value="copia" {{ 'selected' if form and form.valor_legal == 'copia' }}>Copia</option>
+                  <option value="copia_autenticada" {{ 'selected' if form and form.valor_legal == 'copia_autenticada' }}>Copia Autenticada</option>
+                  <option value="copia_simples" {{ 'selected' if form and form.valor_legal == 'copia_simples' }}>Copia Simples</option>
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Natureza</label>
+                <select name="natureza" class="form-select">
+                  <option value="">Selecione...</option>
+                  <option value="natodigital" {{ 'selected' if form and form.natureza == 'natodigital' }}>NatoDigital</option>
+                  <option value="digitalizado" {{ 'selected' if form and form.natureza == 'digitalizado' }}>Digitalizado</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header"><i class="fas fa-diagram-project me-1"></i>Configuracao do Processo</div>
+            <div class="card-body">
+              <div class="mb-3 form-check form-switch">
+                <input type="checkbox" class="form-check-input" name="criar_processo" id="criarProcesso" value="1" {{ 'checked' if form and form.criar_processo }}>
+                <label class="form-check-label fw-semibold" for="criarProcesso">Criar Processo</label>
+                <div class="text-muted small">Cria um processo vinculado ao documento no E-Docs</div>
+              </div>
+              <hr>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Classe Documental</label>
+                <select name="classe_documental" class="form-select select2">
+                  <option value="">Selecione...</option>
+                  {% for cd in classes_documentais %}
+                  <option value="{{ cd.id }}" {{ 'selected' if form and form.classe_documental_id == cd.id }}>{{ cd.nome }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="mb-3">
+                <label class="form-label fw-semibold">Template de Assunto</label>
+                <input type="text" name="assunto_template" class="form-control" value="{{ form.assunto_template if form else '' }}" placeholder="Ex: Solicitacao - {{ '{{' }}nome{{ '}}' }}">
+                <div class="text-muted small mt-1">Use <code>{{ '{{' }}campo_slug{{ '}}' }}</code> para substituir valores dos campos</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB PREVIEW -->
+    <div class="tab-pane fade" id="preview" role="tabpanel">
+      <div class="card">
+        <div class="card-header"><i class="fas fa-eye me-1"></i>Pre-visualizacao do Formulario</div>
+        <div class="card-body preview-render" id="previewRender">
+          <div class="text-center text-muted py-5">
+            <i class="fas fa-file-pen fa-3x mb-3 d-block"></i>
+            <p>Adicione campos ao formulario para ver a pre-visualizacao</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- Template para campo no drop zone -->
+<template id="fieldItemTemplate">
+  <div class="form-field-item" data-index="{{ '{{index}}' }}" data-field-type="{{ '{{type}}' }}">
+    <div class="d-flex align-items-center gap-2">
+      <span class="field-handle"><i class="fas fa-grip-vertical"></i></span>
+      <div class="flex-grow-1">
+        <div class="field-label">{{ '{{label}}' }}</div>
+        <small class="field-type-badge badge bg-light text-muted">{{ '{{typeLabel}}' }}</small>
+      </div>
+      <div class="field-actions">
+        <button class="btn btn-sm btn-outline-danger" onclick="removerCampo(this)" title="Remover">
+          <i class="fas fa-trash-can"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Template para propriedades -->
+<template id="propertiesTemplate">
+  <div id="fieldProperties">
+    <div class="properties-section">
+      <h6>Propriedades Basicas</h6>
+      <div class="mb-2">
+        <label class="form-label small">Label</label>
+        <input type="text" class="form-control form-control-sm prop-label" value="{{ '{{label}}' }}" onchange="updateFieldProp('label', this.value)">
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">Placeholder</label>
+        <input type="text" class="form-control form-control-sm prop-placeholder" value="{{ '{{placeholder}}' }}" onchange="updateFieldProp('placeholder', this.value)">
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">Texto de Ajuda</label>
+        <textarea class="form-control form-control-sm prop-help" rows="2" onchange="updateFieldProp('help', this.value)">{{ '{{help}}' }}</textarea>
+      </div>
+      <div class="form-check mb-2">
+        <input type="checkbox" class="form-check-input prop-required" id="propRequired" {{ '{{required}}' }} onchange="updateFieldProp('required', this.checked)">
+        <label class="form-check-label small" for="propRequired">Obrigatorio</label>
+      </div>
+    </div>
+
+    <div class="properties-section" id="optionsSection" style="display:none;">
+      <h6>Opcoes</h6>
+      <div class="options-list" id="optionsList">
+        {{ '{{options}}' }}
+      </div>
+      <button class="btn btn-sm btn-outline-primary mt-1" onclick="addOption()">
+        <i class="fas fa-plus me-1"></i>Adicionar Opcao
+      </button>
+    </div>
+
+    <div class="properties-section">
+      <h6>Validacao</h6>
+      <div class="row g-2 mb-2">
+        <div class="col-6">
+          <label class="form-label small">Valor Minimo</label>
+          <input type="text" class="form-control form-control-sm prop-min" value="{{ '{{min}}' }}" onchange="updateFieldProp('min', this.value)">
+        </div>
+        <div class="col-6">
+          <label class="form-label small">Valor Maximo</label>
+          <input type="text" class="form-control form-control-sm prop-max" value="{{ '{{max}}' }}" onchange="updateFieldProp('max', this.value)">
+        </div>
+      </div>
+      <div class="mb-2">
+        <label class="form-label small">Regex (Padrao)</label>
+        <input type="text" class="form-control form-control-sm prop-pattern" value="{{ '{{pattern}}' }}" onchange="updateFieldProp('pattern', this.value)">
+      </div>
+    </div>
+
+    <div class="properties-section">
+      <h6>Mapeamento E-Docs</h6>
+      <div class="mb-2">
+        <label class="form-label small">Campo E-Docs</label>
+        <select class="form-select form-select-sm prop-edocs-field" onchange="updateFieldProp('edocs_field', this.value)">
+          <option value="">Nenhum</option>
+          <option value="resumo" {{ '{{edocs_resumo}}' }}>Resumo</option>
+          <option value="classe_documental" {{ '{{edocs_classe}}' }}>Classe Documental</option>
+          <option value="interessado" {{ '{{edocs_interessado}}' }}>Interessado</option>
+          <option value="destinatario" {{ '{{edocs_destinatario}}' }}>Destinatario</option>
+          <option value="observacao" {{ '{{edocs_observacao}}' }}>Observacao</option>
+          <option value="numero_processo" {{ '{{edocs_processo}}' }}>Numero Processo</option>
+        </select>
+      </div>
+    </div>
+  </div>
+</template>
+
+<!-- Template para opcao -->
+<template id="optionItemTemplate">
+  <div class="option-item">
+    <input type="text" class="form-control form-control-sm option-value" placeholder="Valor" value="{{ '{{value}}' }}" onchange="updateOptions()">
+    <input type="text" class="form-control form-control-sm option-label" placeholder="Rotulo" value="{{ '{{label}}' }}" onchange="updateOptions()">
+    <button class="btn btn-sm btn-outline-danger" onclick="this.closest('.option-item').remove(); updateOptions();">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+</template>
+{% endblock %}
+
+{% block extra_js %}
+<script src="/static/js/form-builder.js"></script>
+<script>
+// Initialize form builder
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof FormBuilder !== 'undefined') {
+    var builder = new FormBuilder({
+      dropZone: 'dropZone',
+      fieldTypes: 'fieldTypes',
+      propertiesPanel: 'propertiesPanel',
+      previewRender: 'previewRender',
+      schemaInput: 'fieldsSchema',
+      formNome: 'formNome',
+      formSlug: 'formSlug',
+      fieldItemTemplate: 'fieldItemTemplate',
+      propertiesTemplate: 'propertiesTemplate',
+      optionItemTemplate: 'optionItemTemplate',
+      fieldCount: 'fieldCount'
+    });
+  }
+});
+</script>
+{% endblock %}

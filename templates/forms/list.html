@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Formularios - FormSystem{% endblock %}
+{% block content %}
+<div class="content-header d-flex justify-content-between align-items-center">
+  <div>
+    <h1><i class="fas fa-file-pen me-2"></i>Formularios</h1>
+    <nav aria-label="breadcrumb">
+      <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">Dashboard</a></li>
+        <li class="breadcrumb-item active">Formularios</li>
+      </ol>
+    </nav>
+  </div>
+  <a href="/forms/novo" class="btn btn-gov">
+    <i class="fas fa-plus me-1"></i>Novo Formulario
+  </a>
+</div>
+
+<div class="card">
+  <div class="card-body p-0">
+    <div class="table-responsive">
+      <table class="table table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Nome</th>
+            <th>Slug</th>
+            <th>Versao</th>
+            <th>Campos</th>
+            <th>Submissoes</th>
+            <th>Criado em</th>
+            <th>Acoes</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for form in forms %}
+          <tr>
+            <td class="fw-semibold">{{ form.name }}</td>
+            <td><code>{{ form.slug }}</code></td>
+            <td><span class="badge badge-gov-light">{{ form.version }}</span></td>
+            <td>{{ form.fields_schema|length if form.fields_schema else 0 }}</td>
+            <td>{{ form.submissions|length if form.submissions else 0 }}</td>
+            <td class="text-muted small">{{ form.created_at.strftime('%d/%m/%Y %H:%M') if form.created_at else '' }}</td>
+            <td>
+              <div class="btn-group btn-group-sm">
+                <a href="/forms/{{ form.id }}/editar" class="btn btn-outline-primary" title="Editar">
+                  <i class="fas fa-pen-to-square"></i>
+                </a>
+                <a href="/forms/{{ form.id }}" class="btn btn-outline-info" title="Visualizar">
+                  <i class="fas fa-eye"></i>
+                </a>
+                <button class="btn btn-outline-secondary" title="Duplicar" onclick="duplicarForm('{{ form.id }}')">
+                  <i class="fas fa-copy"></i>
+                </button>
+                <button class="btn btn-outline-danger" title="Excluir" onclick="excluirForm('{{ form.id }}')">
+                  <i class="fas fa-trash-can"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="7" class="text-center py-5 text-muted">
+              <i class="fas fa-file-pen fa-3x mb-3 d-block"></i>
+              <p>Nenhum formulario encontrado</p>
+              <a href="/forms/novo" class="btn btn-gov">
+                <i class="fas fa-plus me-1"></i>Criar Primeiro Formulario
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function duplicarForm(id) {
+  if (confirm('Duplicar este formulario?')) {
+    fetch('/forms/' + id + '/duplicar', { method: 'POST' })
+      .then(r => r.json())
+      .then(d => { if (d.success) location.reload(); else alert('Erro: ' + d.detail); })
+      .catch(e => alert('Erro ao duplicar: ' + e));
+  }
+}
+function excluirForm(id) {
+  if (confirm('Tem certeza que deseja excluir este formulario?')) {
+    fetch('/forms/' + id, { method: 'DELETE' })
+      .then(r => r.json())
+      .then(d => { if (d.success) location.reload(); else alert('Erro: ' + d.detail); })
+      .catch(e => alert('Erro ao excluir: ' + e));
+  }
+}
+</script>
+{% endblock %}

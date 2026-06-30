@@ -1,0 +1,311 @@
+{% extends "base.html" %}
+{% block title %}{{ form.nome }} - FormSystem{% endblock %}
+{% block extra_css %}
+<style>
+  .form-view-container {
+    max-width: 800px;
+    margin: 0 auto;
+  }
+  .form-header {
+    text-align: center;
+    padding: 2rem 1rem 1.5rem;
+  }
+  .form-header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--gov-primary);
+  }
+  .form-header .form-description {
+    color: #6c757d;
+    max-width: 600px;
+    margin: 0.5rem auto 0;
+  }
+  .form-body { padding: 1.5rem; }
+  .field-group { margin-bottom: 1.5rem; }
+  .field-group .form-label { font-weight: 500; color: #212529; }
+  .field-group .required-indicator { color: #dc3545; margin-left: 2px; }
+  .field-group .help-text {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+  }
+  .field-group .error-text {
+    font-size: 0.8rem;
+    color: #dc3545;
+    margin-top: 0.25rem;
+  }
+  .section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--gov-primary);
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid var(--gov-accent);
+    margin-bottom: 1rem;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="form-view-container">
+  <div class="card">
+    <div class="form-header">
+      <h1>{{ form.nome }}</h1>
+      {% if form.descricao %}
+        <p class="form-description">{{ form.descricao }}</p>
+      {% endif %}
+    </div>
+
+    <div class="form-body">
+      <form method="POST" action="{{ url_for('submit_form', slug=form.slug) }}" enctype="multipart/form-data">
+        {% for field in fields %}
+          {% if field.type == 'secao' %}
+            <div class="section-title mt-4 mb-3">{{ field.label }}</div>
+          {% elif field.type == 'text' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <input type="text" class="form-control" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                placeholder="{{ field.placeholder if field.placeholder }}"
+                {% if field.required %}required{% endif %}
+                {% if field.pattern %}pattern="{{ field.pattern }}"{% endif %}
+                {% if field.min %}minlength="{{ field.min }}"{% endif %}
+                {% if field.max %}maxlength="{{ field.max }}"{% endif %}>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'textarea' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <textarea class="form-control" id="field_{{ field.slug }}" name="{{ field.slug }}" rows="4"
+                placeholder="{{ field.placeholder if field.placeholder }}"
+                {% if field.required %}required{% endif %}
+                {% if field.min %}minlength="{{ field.min }}"{% endif %}
+                {% if field.max %}maxlength="{{ field.max }}"{% endif %}>{{ field.default if field.default }}</textarea>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'number' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <input type="number" class="form-control" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                placeholder="{{ field.placeholder if field.placeholder }}"
+                {% if field.required %}required{% endif %}
+                {% if field.min %}min="{{ field.min }}"{% endif %}
+                {% if field.max %}max="{{ field.max }}"{% endif %}
+                step="any">
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'date' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <input type="date" class="form-control" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                {% if field.required %}required{% endif %}>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'select' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <select class="form-select" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                {% if field.required %}required{% endif %}>
+                <option value="">Selecione...</option>
+                {% for opt in field.options %}
+                <option value="{{ opt.value }}" {{ 'selected' if field.default == opt.value }}>{{ opt.label }}</option>
+                {% endfor %}
+              </select>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'radio' %}
+            <div class="field-group">
+              <label class="form-label">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <div>
+                {% for opt in field.options %}
+                <div class="form-check">
+                  <input class="form-check-input" type="radio" name="{{ field.slug }}" id="field_{{ field.slug }}_{{ loop.index }}"
+                    value="{{ opt.value }}" {{ 'checked' if field.default == opt.value }}
+                    {% if field.required %}required{% endif %}>
+                  <label class="form-check-label" for="field_{{ field.slug }}_{{ loop.index }}">{{ opt.label }}</label>
+                </div>
+                {% endfor %}
+              </div>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'checkbox' %}
+            <div class="field-group">
+              <label class="form-label">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <div>
+                {% for opt in field.options %}
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" name="{{ field.slug }}" id="field_{{ field.slug }}_{{ loop.index }}"
+                    value="{{ opt.value }}" {{ 'checked' if field.default == opt.value }}>
+                  <label class="form-check-label" for="field_{{ field.slug }}_{{ loop.index }}">{{ opt.label }}</label>
+                </div>
+                {% endfor %}
+              </div>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'cpf' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <input type="text" class="form-control cpf-mask" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                placeholder="000.000.000-00"
+                {% if field.required %}required{% endif %}>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'cnpj' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <input type="text" class="form-control cnpj-mask" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                placeholder="00.000.000/0000-00"
+                {% if field.required %}required{% endif %}>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'email' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <input type="email" class="form-control" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                placeholder="exemplo@dominio.com"
+                {% if field.required %}required{% endif %}>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'telefone' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <input type="tel" class="form-control phone-mask" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                placeholder="(00) 00000-0000"
+                {% if field.required %}required{% endif %}>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'currency' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <div class="input-group">
+                <span class="input-group-text">R$</span>
+                <input type="text" class="form-control currency-mask" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                  placeholder="0,00"
+                  {% if field.required %}required{% endif %}>
+              </div>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% elif field.type == 'file' %}
+            <div class="field-group">
+              <label class="form-label" for="field_{{ field.slug }}">
+                {{ field.label }}
+                {% if field.required %}<span class="required-indicator">*</span>{% endif %}
+              </label>
+              <input type="file" class="form-control" id="field_{{ field.slug }}" name="{{ field.slug }}"
+                {% if field.required %}required{% endif %}>
+              {% if field.help %}<div class="help-text">{{ field.help }}</div>{% endif %}
+            </div>
+          {% endif %}
+        {% else %}
+          <div class="text-center py-5 text-muted">
+            <i class="fas fa-file-pen fa-3x mb-3 d-block"></i>
+            <p>Este formulario nao possui campos configurados.</p>
+          </div>
+        {% endfor %}
+
+        {% if fields %}
+        <div class="d-grid gap-2 mt-4">
+          <button type="submit" class="btn btn-gov btn-lg">
+            <i class="fas fa-paper-plane me-2"></i>Enviar
+          </button>
+        </div>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // CPF Mask
+  document.querySelectorAll('.cpf-mask').forEach(function(el) {
+    el.addEventListener('input', function(e) {
+      var v = e.target.value.replace(/\D/g, '');
+      if (v.length <= 11) {
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+      }
+      e.target.value = v;
+    });
+  });
+
+  // CNPJ Mask
+  document.querySelectorAll('.cnpj-mask').forEach(function(el) {
+    el.addEventListener('input', function(e) {
+      var v = e.target.value.replace(/\D/g, '');
+      if (v.length <= 14) {
+        v = v.replace(/(\d{2})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d)/, '$1.$2');
+        v = v.replace(/(\d{3})(\d)/, '$1/$2');
+        v = v.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+      }
+      e.target.value = v;
+    });
+  });
+
+  // Phone Mask
+  document.querySelectorAll('.phone-mask').forEach(function(el) {
+    el.addEventListener('input', function(e) {
+      var v = e.target.value.replace(/\D/g, '');
+      if (v.length <= 11) {
+        v = v.replace(/(\d{2})(\d)/, '($1) $2');
+        if (v.length > 10) {
+          v = v.replace(/(\d{5})(\d)/, '$1-$2');
+        } else {
+          v = v.replace(/(\d{4})(\d)/, '$1-$2');
+        }
+      }
+      e.target.value = v;
+    });
+  });
+
+  // Currency Mask (Brazilian Real)
+  document.querySelectorAll('.currency-mask').forEach(function(el) {
+    el.addEventListener('input', function(e) {
+      var v = e.target.value.replace(/\D/g, '');
+      v = (parseInt(v) / 100).toFixed(2);
+      v = v.replace('.', ',');
+      v = v.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+      e.target.value = v;
+    });
+  });
+});
+</script>
+{% endblock %}
